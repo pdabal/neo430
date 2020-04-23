@@ -1,0 +1,7 @@
+*.o
+*.s
+*.elf
+*.bin
+*.dat
+sw/tools/image_gen/image_gen.exe
+rtl/core/neo430_application_image.vhd
