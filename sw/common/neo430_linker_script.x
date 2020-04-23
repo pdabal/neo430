@@ -38,8 +38,8 @@ OUTPUT_ARCH(msp430)
 /* Relevant address space layout */
 MEMORY
 {
-  rom  (rx) : ORIGIN = 0x0000, LENGTH = 0x1000
-  ram (rwx) : ORIGIN = 0xC008, LENGTH = 0x0800 - 8
+  rom  (rx) : ORIGIN = 0x0000, LENGTH = 0x2000
+  ram (rwx) : ORIGIN = 0xC008, LENGTH = 0x0400 - 8
 }
 
 /* Final executable layout */
