@@ -109,7 +109,7 @@ uint16_t crypto_cmd(char *buffer)
   uint32_t value[CMD_VALUE_LENGTH];
 
   // Wyczyszczenie pojemnika na wartości do wpisu odczytu
-  memset(value, 0, CMD_VALUE_LENGTH);
+  memset(value, 0, CMD_VALUE_LENGTH * sizeof(uint32_t));
   // Zmiana wszystkich znaków na duże litery
   CMD = strupr(buffer);
   // Wykrycie przesłanej komendy
@@ -130,7 +130,7 @@ uint16_t crypto_cmd(char *buffer)
     sprintf(buffer, "\nOK\n");
     break;
   case '?': // Odczytanie wartości
-    memset(value, 0, CMD_VALUE_LENGTH);
+    memset(value, 0, CMD_VALUE_LENGTH * sizeof(uint32_t));
     cmdGet(cmd, value); // Wykonanie komendy
     setCmdValue(buffer, value, cmd);
     break;
