@@ -1,7 +1,13 @@
-*.o
-*.s
-*.elf
+# no generated project files
 *.bin
+*.o
+*.elf
 *.dat
-sw/tools/image_gen/image_gen.exe
-rtl/core/neo430_application_image.vhd
+*.s
+
+# no executables
+sw/tools/image_gen/image_gen
+*.exe
+
+# no temp/legacy files/folders
+~*
