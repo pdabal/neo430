@@ -11,3 +11,9 @@ sw/tools/image_gen/image_gen
 
 # no temp/legacy files/folders
 ~*
+
+# no generate image
+rtl/core/neo430_application_image.vhd
+
+# no vs code settings
+.vscode/settings.json
