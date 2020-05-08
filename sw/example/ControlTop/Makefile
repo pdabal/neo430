@@ -34,21 +34,24 @@ APP_SRC = main.c
 
 # User's application include folders (don't forget the '-I' before each entry)
 APP_INC = -I .
+
+# Relative or absolute path to the NEO430 home folder
+NEO430_HOME = ../../..
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
 # NEO430 framework
 #-------------------------------------------------------------------------------
 # Path to NEO430 linker script and startup file
-NEO430_COM_PATH=../../common
+NEO430_COM_PATH=$(NEO430_HOME)/sw/common
 # Path to main NEO430 library include files
-NEO430_INC_PATH=../../lib/neo430/include
+NEO430_INC_PATH=$(NEO430_HOME)/sw/lib/neo430/include
 # Path to main NEO430 library source files
-NEO430_SRC_PATH=../../lib/neo430/source
+NEO430_SRC_PATH=$(NEO430_HOME)/sw/lib/neo430/source
 # Path to NEO430 executable generator
-NEO430_EXE_PATH=../../tools/image_gen
+NEO430_EXE_PATH=$(NEO430_HOME)/sw/tools/image_gen
 # Path to NEO430 core rtl folder
-NEO430_RTL_PATH=../../../rtl/core
+NEO430_RTL_PATH=$(NEO430_HOME)/rtl/core
 
 WB_IO_SRC_PATH=../../lib/wb_io/source
 WB_IO_INC_PATH=../../lib/wb_io/include
@@ -103,11 +106,17 @@ IMAGE_GEN = $(NEO430_EXE_PATH)/image_gen
 # Compiler flags
 CC_OPTS = -mcpu=msp430 -pipe -Wall -Xassembler --mY -mhwmult=none -fno-delete-null-pointer-checks
 CC_OPTS += -Wl,-static -mrelax -nostartfiles -fdata-sections -ffunction-sections -Xlinker --gc-sections 
-# CC_OPTS += -Wl,-static -mrelax -minrt -nostartfiles -fdata-sections -ffunction-sections -Xlinker --gc-sections 
+# Use NEO430 multiplier? (still experimental!)
+ifeq (,$(findstring NEO430_HWMUL_ABI_OVERRIDE,$(CC_USER_FLAGS)))
+	CC_OPTS += -mhwmult=none
+else
+	CC_OPTS += -mhwmult=16bit
+endif
+# Add user flags if available
+CC_OPTS += ${CC_USER_FLAGS}
 
 # Linker flags
-LD_OPTS = -mcpu=msp430 -Wl,--gc-sections -mrelax -nostartfiles
-# LD_OPTS = -mcpu=msp430 -Wl,--gc-sections -mrelax -minrt -nostartfiles
+LD_OPTS = -mcpu=msp430 -Wl,--gc-sections -mrelax -minrt -nostartfiles
 
 
 #-------------------------------------------------------------------------------
@@ -157,6 +166,7 @@ $(APP_ASM): main.elf
 
 # Generate NEO430 executable image for bootloader update
 $(APP_BIN): image.dat $(IMAGE_GEN)
+	@set -e
 	@$(IMAGE_GEN) -app_bin $< $@
 
 # Generate NEO430 executable VHDL boot image
