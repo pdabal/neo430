@@ -4,19 +4,27 @@
 #include <neo430.h>
 
 //----------------------------------------
+#define DUT_VALUE_LENGTH 256
+#define DUT_RESULT_LENGTH 16
+
+#define WB_ADDR_LENGTH 8
+
+#define WB_CRYPTO_REG_VALUE_COUNT ((DUT_VALUE_LENGTH / 16) != 0) ? (DUT_VALUE_LENGTH / 16) : 1
+#define WB_CRYPTO_REG_RESULT_COUNT ((DUT_RESULT_LENGTH / 16) != 0) ? (DUT_RESULT_LENGTH / 16) : 1
+
+//-------------------------------------------------------------------------------------------------
+// Regs
 #define WB_CRYPTO_BASEADDRES 0x00000000
+// For READ/WRITE
+#define WB_CRYPTO_REG_CTRL (WB_CRYPTO_BASEADDRES + 0x00000000)
+#define WB_CRYPTO_REG_VALUE (WB_CRYPTO_REG_CTRL + 0x00000004)
+#define WB_CRYPTO_REG_VALUE_END (WB_CRYPTO_REG_VALUE_COUNT * 0x00000004)
+// For READ
+#define WB_CRYPTO_REG_STATUS (WB_CRYPTO_REG_VALUE_END + 0x00000004)
+#define WB_CRYPTO_REG_RESULT (WB_CRYPTO_REG_STATUS + 0x00000004)
 
-// Reg addres
-#define WB_CRYPTO_REG_VALUE 0x00000000
-#define WB_CRYPTO_REG_CTRL 0x00000004
-#define WB_CRYPTO_REG_RESULT 0x0000008
-#define WB_CRYPTO_REG_STATUS 0x00000010
-
-#define WB_CRYPTO_REG_HEADER_OUT 0x00000040
-#define WB_CRYPTO_REG_HEADER_DIR 0x00000044
-#define WB_CRYPTO_REG_HEADER_IN 0x00000048
-
-// Reg bits
+//-------------------------------------------------------------------------------------------------
+// Regs bits
 #define WB_CRYPTO_REG_CTRL_START_BIT 2
 #define WB_CRYPTO_REG_CTRL_RESET_BIT 3
 
@@ -42,8 +50,8 @@ void wb_crypto_reset();
 void wb_crypto_ctrl_set(uint16_t value);
 uint16_t wb_crypto_ctrl_get();
 
-void wb_crypto_value_set(uint16_t *value);
-void wb_crypto_value_get(uint16_t *value);
+void wb_crypto_value_set(uint16_t *value, uint16_t n);
+void wb_crypto_value_get(uint16_t *value, uint16_t n);
 
 uint16_t wb_crypto_status_get();
 uint16_t wb_crypto_status_active_get();
@@ -51,4 +59,13 @@ uint16_t wb_crypto_status_trig_get();
 
 void wb_crypto_result_get(uint16_t *value);
 
+//----------------------------------------
+struct wb_crypto_reg_t
+{
+    volatile uint32_t ctrl;
+    volatile uint32_t value[WB_CRYPTO_REG_VALUE_COUNT];
+    volatile uint32_t status;
+    volatile uint32_t result[WB_CRYPTO_REG_RESULT_COUNT];
+};
+#define WB_CRYPTO ((wb_crypto_reg_t *)WB_CRYPTO_BASEADDRES)
 #endif
