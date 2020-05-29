@@ -1,5 +1,5 @@
 #################################################################################################
-#  < NEO430 Application Compile Script - Linux / Windows Powershell / Windows Linux Subsystem > #
+# < NEO430 Application Compile Script - Linux / Windows Powershell / Windows Linux Subsystem >  #
 # ********************************************************************************************* #
 # BSD 3-Clause License                                                                          #
 #                                                                                               #
@@ -40,13 +40,16 @@
 EFFORT = -Os
 
 # User's application sources (add additional files here)
-APP_SRC = core_list_join.c core_main.c core_matrix.c core_portme.c core_state.c core_util.c ee_printf.c
+APP_SRC = core_list_join.c core_main.c core_matrix.c core_portme.c core_state.c core_util.c ee_printf.c 
 
 # User's application include folders (don't forget the '-I' before each entry)
 APP_INC = -I .
 
-# Relative or absolute path to the NEO430 home folder
-NEO430_HOME = ../../..
+# Relative or absolute path to the NEO430 home folder (use default if not set by user)
+NEO430_HOME ?= ../../..
+
+# Additional user flags:
+CC_USER_FLAGS += 
 #*******************************************************************************
 
 
@@ -64,6 +67,8 @@ NEO430_SRC_PATH=$(NEO430_HOME)/sw/lib/neo430/source
 NEO430_EXE_PATH=$(NEO430_HOME)/sw/tools/image_gen
 # Path to NEO430 core rtl folder
 NEO430_RTL_PATH=$(NEO430_HOME)/rtl/core
+# Marker file to verify NEO430 home folder
+NEO430_HOME_MARKER=$(NEO430_INC_PATH)/neo430.h
 
 
 #-------------------------------------------------------------------------------
@@ -107,6 +112,9 @@ OBJCOPY   = msp430-elf-objcopy
 SIZE      = msp430-elf-size
 IMAGE_GEN = $(NEO430_EXE_PATH)/image_gen
 
+# Assembler flags
+AS_OPTS = -mY -mcpu=msp430
+
 # Compiler flags
 CC_OPTS = -mcpu=msp430 -pipe -Wall -Xassembler --mY -fno-delete-null-pointer-checks
 CC_OPTS += -Wl,-static -mrelax -minrt -nostartfiles -fdata-sections -ffunction-sections -Xlinker --gc-sections
@@ -120,17 +128,17 @@ endif
 CC_OPTS += ${CC_USER_FLAGS}
 
 # Linker flags
-LD_OPTS = -mcpu=msp430 -Wl,--gc-sections -mrelax -minrt -nostartfiles
+LD_OPTS = -mcpu=msp430 -mrelax -minrt -nostartfiles
 
 
 #-------------------------------------------------------------------------------
-# PC Host Compiler
+# Host native compiler
 #-------------------------------------------------------------------------------
-CC_X86 = g++ -Wall -O -g
+CC_X86 = gcc -Wall -O -g
 
 
 #-------------------------------------------------------------------------------
-# Tool Targets
+# Tool targets
 #-------------------------------------------------------------------------------
 # install/compile tools
 $(IMAGE_GEN): $(NEO430_EXE_PATH)/main.cpp
@@ -143,7 +151,7 @@ $(IMAGE_GEN): $(NEO430_EXE_PATH)/main.cpp
 #-------------------------------------------------------------------------------
 # Assemble startup code
 crt0.elf: $(NEO430_COM_PATH)/crt0.asm
-	@$(AS) -mY -mcpu=msp430 $< -o $@
+	@$(AS) $(AS_OPTS) $< -o $@
 
 # Compile app sources
 $(OBJ): %.o : %.c crt0.elf
@@ -152,6 +160,15 @@ $(OBJ): %.o : %.c crt0.elf
 # Link object files
 main.elf: $(OBJ)
 	@$(CC) $(LD_OPTS) $(EFFORT) -I $(NEO430_INC_PATH) $(APP_INC) -T $(NEO430_COM_PATH)/neo430_linker_script.x $(OBJ) -o $@ -lm
+# Using HWMUL ABI overrite?
+ifneq (,$(findstring NEO430_HWMUL_ABI_OVERRIDE,$(CC_OPTS)))
+	@echo "> Using implicit invocation of neo430 MULDIV multiplier unit (NEO430_HWMUL_ABI_OVERRIDE)"
+endif
+# Using HWMUL ABI overrite?
+ifneq (,$(findstring NEO430_HWMUL_DSP,$(CC_OPTS)))
+	@echo "> Assuming single cycle processing delay for neo430 MULDIV multiplier unit (NEO430_HWMUL_DSP)"
+endif
+# Show memory utilization
 	@echo Memory utilization:
 	@$(SIZE) main.elf
 
@@ -163,7 +180,7 @@ image.dat: main.elf
 	@cat text.dat rodata.dat data.dat > $@
 	@rm -f text.dat rodata.dat data.dat
 
-# Assembly listing file (for debugging)
+# Assembly listing file (for debugging) and check for DADD instruction
 $(APP_ASM): main.elf
 	@$(OBJDUMP) -D -S -z  $< > $@
 	@if grep -qR "dadd" $@; then echo "NEO430: WARNING! 'DADD' instruction might be used!"; fi
@@ -182,6 +199,65 @@ neo430_application_image.vhd: image.dat $(IMAGE_GEN)
 
 
 #-------------------------------------------------------------------------------
+# Check toolchain
+#-------------------------------------------------------------------------------
+check: $(IMAGE_GEN)
+	@echo "--------------- Check: NEO430_HOME folder ---------------"
+ifneq ($(shell [ -e $(NEO430_HOME_MARKER) ] && echo 1 || echo 0 ), 1)
+$(error NEO430_HOME folder not found!)
+endif
+	@echo "NEO430_HOME: $(NEO430_HOME)"
+	@echo "--------------- Check: $(AS) ---------------"
+	@$(AS) -version
+	@echo "--------------- Check: $(CC) ---------------"
+	@$(CC) -v
+	@echo "--------------- Check: $(LD) ---------------"
+	@$(LD) -V
+	@echo "--------------- Check: $(STRIP) ---------------"
+	@$(STRIP) -V
+	@echo "--------------- Check: $(OBJDUMP) ---------------"
+	@$(OBJDUMP) -V
+	@echo "--------------- Check: $(OBJCOPY) ---------------"
+	@$(OBJCOPY) -V
+	@echo "--------------- Check: $(SIZE) ---------------"
+	@$(SIZE) -V
+	@echo "--------------- Check: neo430 image_gen ---------------"
+	@$(IMAGE_GEN) -help
+	@echo "--------------- Check: native gcc ---------------"
+	@$(CC_X86) -v
+	@echo
+	@echo "Toolchain check OK"
+
+
+#-------------------------------------------------------------------------------
+# Show configuration
+#-------------------------------------------------------------------------------
+info:
+	@echo "--------------- Info: Project ---------------"
+	@echo "Project: $(shell basename $(CURDIR))"
+	@echo "NEO430 home folder (NEO430_HOME): $(NEO430_HOME)"
+	@echo "Project source files: $(APP_SRC)"
+	@echo "Project include folders: $(NEO430_INC_PATH) $(APP_INC)"
+	@echo "Project object files: $(OBJ)"
+	@echo "--------------- Info: Tools ---------------"
+	@echo " AS:        $(AS)"
+	@echo " CC:        $(CC)"
+	@echo " LD:        $(LD)"
+	@echo " STRIP:     $(STRIP)"
+	@echo " OBJDUMP:   $(OBJDUMP)"
+	@echo " OBJCOPY:   $(OBJCOPY)"
+	@echo " SIZE:      $(SIZE)"
+	@echo " IMAGE_GEN: $(IMAGE_GEN)"
+	@echo " CC_X86:    $(CC_X86)"
+	@echo "--------------- Info: Flags ---------------"
+	@echo " EFFORT:        $(EFFORT)"
+	@echo " AS_OPTS:       $(AS_OPTS)"
+	@echo " CC_OPTS:       $(CC_OPTS)"
+	@echo " LD_OPTS:       $(LD_OPTS)"
+	@echo " CC_USER_FLAGS: $(CC_USER_FLAGS)"
+
+
+#-------------------------------------------------------------------------------
 # Help
 #-------------------------------------------------------------------------------
 help:
@@ -189,22 +265,24 @@ help:
 	@echo "Make sure to add the msp430-gcc bin folder to your system's PATH variable."
 	@echo "Targets:"
 	@echo " help      - show this text"
+	@echo " check     - check toolchain"
+	@echo " info      - show makefile configuration"
 	@echo " compile   - compile and generate *.bin executable for upload via bootloader"
 	@echo " install   - compile, generate and install VHDL boot image"
 	@echo " all       - compile and generate *.bin executable for upload via bootloader and generate and install VHDL boot image"
 	@echo " clean     - clean up project"
 	@echo " clean_all - clean up project, core libraries and helper tools"
+	@echo "CC_USER_FLAGS (usage example: CC_USER_FLAGS+=-DNEO430_HWMUL_ABI_OVERRIDE)"
+	@echo " NEO430_HWMUL_ABI_OVERRIDE - implicit usage of MULDIV.mul unit (make sure it is synthesized)"
+	@echo " NEO430_HWMUL_DSP          - use embedded multiplier for MULDIV.mul unit (make also sure this option is synthesized)"
 
 
 #-------------------------------------------------------------------------------
 # Clean up
 #-------------------------------------------------------------------------------
 clean:
-	@rm -f *.elf *.o *.dat *.vhd *.s *.bin
+	@rm -f *.elf *.o *.dat *.vhd *.bin *.out *.s
 
-clean_all:
-	@rm -f $(OBJ) *.elf *.dat *.bin *.vhd *.s $(IMAGE_GEN)
+clean_all: clean
+	@rm -f $(OBJ) $(IMAGE_GEN)
 
-  
-#-------------------------------------------------------------------------------
-# eof
