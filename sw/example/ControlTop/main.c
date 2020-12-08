@@ -11,7 +11,7 @@
 #include "main.h"
 
 // Stałe interpretera wiersza poleceń
-#define CMD_NUM 9
+#define CMD_NUM 12
 #define CMD_LENGTH 5
 #define CMD_VALUE_LENGTH WB_CRYPTO_REG_VALUE_COUNT
 #define CMD_RESULT_LENGTH WB_CRYPTO_REG_RESULT_COUNT
@@ -31,7 +31,8 @@ char buffer[BUFFER_LENGTH];       // Bufor dla UART
 char *cmdList[CMD_NUM] = {        // Zbiór rozpoznawanych komend
     ":STA", ":RST", ":CTR", ":VAL",
     ":RES", ":ACT", ":TRI",
-    ":LED", ":DIP"};
+    ":LED", ":DIP",
+    ":HEI", ":HEO", ":HET"};
 
 // #define USE_SPRINTF
 
