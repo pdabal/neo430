@@ -1,25 +1,35 @@
 // #################################################################################################
 // #  < neo430_usart.c - Internal UARt driver functions >                                          #
 // # ********************************************************************************************* #
-// # This file is part of the NEO430 Processor project: https://github.com/stnolting/neo430        #
-// # Copyright by Stephan Nolting: stnolting@gmail.com                                             #
+// # BSD 3-Clause License                                                                          #
 // #                                                                                               #
-// # This source file may be used and distributed without restriction provided that this copyright #
-// # statement is not removed from the file and that any derivative work contains the original     #
-// # copyright notice and the associated disclaimer.                                               #
+// # Copyright (c) 2020, Stephan Nolting. All rights reserved.                                     #
 // #                                                                                               #
-// # This source file is free software; you can redistribute it and/or modify it under the terms   #
-// # of the GNU Lesser General Public License as published by the Free Software Foundation,        #
-// # either version 3 of the License, or (at your option) any later version.                       #
+// # Redistribution and use in source and binary forms, with or without modification, are          #
+// # permitted provided that the following conditions are met:                                     #
 // #                                                                                               #
-// # This source is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;      #
-// # without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.     #
-// # See the GNU Lesser General Public License for more details.                                   #
+// # 1. Redistributions of source code must retain the above copyright notice, this list of        #
+// #    conditions and the following disclaimer.                                                   #
 // #                                                                                               #
-// # You should have received a copy of the GNU Lesser General Public License along with this      #
-// # source; if not, download it from https://www.gnu.org/licenses/lgpl-3.0.en.html                #
+// # 2. Redistributions in binary form must reproduce the above copyright notice, this list of     #
+// #    conditions and the following disclaimer in the documentation and/or other materials        #
+// #    provided with the distribution.                                                            #
+// #                                                                                               #
+// # 3. Neither the name of the copyright holder nor the names of its contributors may be used to  #
+// #    endorse or promote products derived from this software without specific prior written      #
+// #    permission.                                                                                #
+// #                                                                                               #
+// # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS   #
+// # OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF               #
+// # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE    #
+// # COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,     #
+// # EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE #
+// # GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED    #
+// # AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING     #
+// # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED  #
+// # OF THE POSSIBILITY OF SUCH DAMAGE.                                                            #
 // # ********************************************************************************************* #
-// # Stephan Nolting, Hannover, Germany                                                 17.01.2020 #
+// # The NEO430 Processor - https://github.com/stnolting/neo430                                    #
 // #################################################################################################
 
 #include "neo430.h"
@@ -75,6 +85,35 @@ void neo430_uart_disable(void){
 
 
 /* ------------------------------------------------------------
+ * INFO Get current UARt baud rate
+ * ------------------------------------------------------------ */
+uint32_t neo430_uart_get_baudrate(void) {
+
+  // Clock speed
+  uint32_t clock = CLOCKSPEED_32bit;
+
+  // prescaler
+  uint16_t prsc;
+  switch ((UART_CT >> 8) & 0x0007) {
+    case 0:  prsc = 2; break;
+    case 1:  prsc = 4; break;
+    case 2:  prsc = 8; break;
+    case 3:  prsc = 64; break;
+    case 4:  prsc = 128; break;
+    case 5:  prsc = 1024; break;
+    case 6:  prsc = 2048; break;
+    case 7:  prsc = 4096; break;
+    default: prsc = 0; break;
+  }
+
+  uint16_t baud = UART_CT & 0x00FF;
+  uint32_t baud_value = clock / (uint32_t)(prsc * baud);
+
+  return baud_value;
+}
+
+
+/* ------------------------------------------------------------
  * INFO Send single char via internal UART
  * PARAM c char to send
  * ------------------------------------------------------------ */
@@ -96,8 +135,9 @@ char neo430_uart_getc(void){
   uint16_t d = 0;
   while (1) {
     d = UART_RTX;
-    if ((d & (1<<UART_RTX_AVAIL)) != 0) // char received?
+    if ((d & (1<<UART_RTX_AVAIL)) != 0) { // char received?
       return (char)d;
+    }
   }
 }
 
@@ -131,8 +171,9 @@ char neo430_uart_char_read(void){
 void neo430_uart_print(char *s){
 
   char c = 0;
-  while ((c = *s++))
+  while ((c = *s++)) {
     neo430_uart_putc(c);
+  }
 }
 
 
@@ -145,8 +186,9 @@ void neo430_uart_br_print(char *s){
 
   char c = 0;
   while ((c = *s++)) {
-    if (c == '\n')
+    if (c == '\n') {
       neo430_uart_putc('\r');
+    }
     neo430_uart_putc(c);
   }
 }
@@ -224,8 +266,11 @@ void neo430_uart_print_hex_byte(uint8_t b) {
  * ------------------------------------------------------------ */
 void neo430_uart_print_hex_word(uint16_t w) {
 
-  neo430_uart_print_hex_byte((uint8_t)(w >> 8));
-  neo430_uart_print_hex_byte((uint8_t)(w >> 0));
+  union uint16_u tmp;
+  tmp.uint16 = w;
+
+  neo430_uart_print_hex_byte(tmp.uint8[1]);
+  neo430_uart_print_hex_byte(tmp.uint8[0]);
 }
 
 
@@ -235,8 +280,33 @@ void neo430_uart_print_hex_word(uint16_t w) {
  * ------------------------------------------------------------ */
 void neo430_uart_print_hex_dword(uint32_t dw) {
 
-  neo430_uart_print_hex_word((uint16_t)(dw >> 16));
-  neo430_uart_print_hex_word((uint16_t)(dw >>  0));
+  union uint32_u tmp;
+  tmp.uint32 = dw;
+
+  neo430_uart_print_hex_byte(tmp.uint8[3]);
+  neo430_uart_print_hex_byte(tmp.uint8[2]);
+  neo430_uart_print_hex_byte(tmp.uint8[1]);
+  neo430_uart_print_hex_byte(tmp.uint8[0]);
+}
+
+
+/* ------------------------------------------------------------
+ * INFO Print 64-bit hexadecimal value (16 digits)
+ * PARAM uint64_t value to be printed
+ * ------------------------------------------------------------ */
+void neo430_uart_print_hex_qword(uint64_t qw) {
+
+  union uint64_u tmp;
+  tmp.uint64 = qw;
+
+  neo430_uart_print_hex_byte(tmp.uint8[7]);
+  neo430_uart_print_hex_byte(tmp.uint8[6]);
+  neo430_uart_print_hex_byte(tmp.uint8[5]);
+  neo430_uart_print_hex_byte(tmp.uint8[4]);
+  neo430_uart_print_hex_byte(tmp.uint8[3]);
+  neo430_uart_print_hex_byte(tmp.uint8[2]);
+  neo430_uart_print_hex_byte(tmp.uint8[1]);
+  neo430_uart_print_hex_byte(tmp.uint8[0]);
 }
 
 
@@ -257,37 +327,45 @@ void neo430_uart_print_bin_byte(uint8_t b) {
 
 
 /* ------------------------------------------------------------
- * INFO Print 16-bit decimal value (16 digits)
+ * INFO Print 16-bit binary value (16 digits)
  * PARAM uint16_t value to be printed
  * ------------------------------------------------------------ */
 void neo430_uart_print_bin_word(uint16_t w) {
 
-  neo430_uart_print_bin_byte((uint8_t)(w >> 8));
-  neo430_uart_print_bin_byte((uint8_t)(w >> 0));
+  union uint16_u tmp;
+  tmp.uint16 = w;
+
+  neo430_uart_print_bin_byte(tmp.uint8[1]);
+  neo430_uart_print_bin_byte(tmp.uint8[0]);
 }
 
 
 /* ------------------------------------------------------------
- * INFO Print 32-bit decimal value (32 digits)
+ * INFO Print 32-bit binary value (32 digits)
  * PARAM uint32_t value to be printed
  * ------------------------------------------------------------ */
 void neo430_uart_print_bin_dword(uint32_t dw) {
 
-  neo430_uart_print_bin_word((uint16_t)(dw >> 16));
-  neo430_uart_print_bin_word((uint16_t)(dw >>  0));
+  union uint32_u tmp;
+  tmp.uint32 = dw;
+
+  neo430_uart_print_bin_byte(tmp.uint8[3]);
+  neo430_uart_print_bin_byte(tmp.uint8[2]);
+  neo430_uart_print_bin_byte(tmp.uint8[1]);
+  neo430_uart_print_bin_byte(tmp.uint8[0]);
 }
 
 
 /* ------------------------------------------------------------
- * INFO Print 32-bit number as decimal number
+ * INFO Print 32-bit number as decimal number (10 digits)
  * INFO Slow custom version of itoa
  * PARAM 32-bit value to be printed as decimal number
- * PARAM show leading zeros when set
+ * PARAM show #leading_zeros leading zeros
  * PARAM pointer to array (11 elements!!!) to store conversion result string
  * ------------------------------------------------------------ */
-void neo430_itoa(uint32_t x, const uint16_t leading_zeros, char *res) {
+void neo430_itoa(uint32_t x, uint16_t leading_zeros, char *res) {
 
-  static const char numbers[10] = "0123456789";
+  const char numbers[10] = "0123456789";
   char buffer1[11];
   uint16_t i, j;
 
@@ -360,7 +438,7 @@ void neo430_printf(char *format, ...) {
           neo430_itoa((uint32_t)va_arg(a, unsigned int), 0, string_buf);
           neo430_uart_br_print(string_buf);
           break;
-        case 'l': // 32-bit long
+        case 'l': // 32-bit signed long
           n = (int32_t)va_arg(a, int32_t);
           if (n < 0) {
             n = -n;
@@ -390,36 +468,6 @@ void neo430_printf(char *format, ...) {
     }
   }
   va_end(a);
-}
-
-
-/* ------------------------------------------------------------
- * INFO Print fixed point number
- * INFO HIGHLY EXPERIMENTAL!
- * PARAM fixed point number (32-bit)
- * PARAM number of fractional bits
- * ------------------------------------------------------------ */
-void neo430_fp_print(int32_t num, const uint16_t fp) {
-
-  char string_buf[11];
-
-  // print integer part
-  int32_t num_int = num;
-
-  if (num_int < (int32_t)0) {
-    num_int = -num_int;
-    neo430_uart_putc('-');
-  }
-  neo430_itoa((uint32_t)num_int >> fp, 0, string_buf);
-  neo430_uart_br_print(string_buf);
-
-  neo430_uart_putc('.');
-
-  // print fractional part (3 digits)
-  uint32_t frac_part = (uint32_t)(num_int & ((1<<fp)-1));
-  frac_part = (frac_part * 1000) / (1<<fp);
-  neo430_itoa(frac_part, 2, string_buf);
-  neo430_uart_br_print(string_buf);
 }
 
 
@@ -462,5 +510,59 @@ void neo430_uart_bs(uint16_t n) {
   while (n--) {
     neo430_uart_putc(0x08);
   }
+}
+
+
+/* ------------------------------------------------------------
+ * INFO Print signed 32-bit fixed point number (num)
+ * PARAM fpf_c: Number of bin fractional bits in input (max 32)
+ * PARAM num_frac_digits_c: Number of fractional digits to show (max 8)
+ * ------------------------------------------------------------ */
+void neo430_uart_print_fpf_32(int32_t num, uint16_t fpf_c, uint16_t num_frac_digits_c) {
+
+  uint16_t i;
+
+  // make positive
+  if (num < 0) {
+    neo430_uart_putc('-');
+    num = -num;
+  }
+  uint32_t num_int = (uint32_t)num;
+
+
+  // print integer part
+  char int_buf[11];
+  neo430_itoa((uint32_t)(num_int >> fpf_c), 0, int_buf);
+  neo430_uart_br_print(int_buf);
+  neo430_uart_putc('.');
+
+
+  // compute fractional resolution
+  uint32_t frac_dec_base = 1;
+  for (i=0; i<num_frac_digits_c; i++) {
+    frac_dec_base = frac_dec_base * 10;
+  }
+  frac_dec_base = frac_dec_base >> 1;
+
+  // compute fractional part's bit-insulation shift mask
+  uint32_t frac_dec_mask = 1L << (fpf_c-1);
+
+
+  // compute actual fractional part
+  uint32_t frac_data = num_int & ((1 << fpf_c)-1); // only keep fractional bits
+  uint32_t frac_sum = 1;
+  for (i=0; i<fpf_c; i++) { // test each fractional bit
+    if (frac_data & frac_dec_mask) { // insulate current fractional bit
+      frac_sum += frac_dec_base;
+    }
+    frac_dec_mask >>= 1; // go from MSB to LSB
+    frac_dec_base >>= 1;
+  }
+
+  // print fractional part
+  char frac_buf[11];
+  neo430_itoa((uint32_t)frac_sum, num_frac_digits_c-1, frac_buf);
+  frac_buf[num_frac_digits_c] = '\0'; // truncate
+  neo430_uart_br_print(frac_buf);
 }
 

@@ -1,0 +1,14 @@
+# no generated project files
+*.bin
+*.o
+*.elf
+*.dat
+*.s
+*.out
+
+# no executables
+sw/tools/image_gen/image_gen
+*.exe
+
+# no temp/legacy files/folders
+~*

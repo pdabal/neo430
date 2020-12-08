@@ -69,7 +69,7 @@ Modified for neo430 by Stephan Nolting
 	or zeroing some system parameters - e.g. setting the cpu clocks cycles to 0.
 */
 void start_time(void) {
-  neo430_timer_start();
+  neo430_timer_run();
 	//GETMYTIME(&start_time_val );      
 }
 /* Function : stop_time
@@ -79,7 +79,7 @@ void start_time(void) {
 	or other system parameters - e.g. reading the current value of cpu cycles counter.
 */
 void stop_time(void) {
-  neo430_timer_stop();
+  neo430_timer_pause();
 	//GETMYTIME(&stop_time_val );      
 }
 /* Function : get_time
@@ -135,16 +135,19 @@ void portable_init(core_portable *p, int *argc, char *argv[])
            (1<<TMR_CT_ARST) | // auto-reset on match
            (1<<TMR_CT_IRQ)  | // interrupt enable
            (0<<TMR_CT_RUN);   // timer not running yet
-  neo430_timer_config_period(NEO430_TIMER_F);
 
-  neo430_printf("NEO430 - clock speed  : %n Hz\n", CLOCKSPEED_32bit);
-  neo430_printf("NEO430 - timer THRES  : %u\n", TMR_THRES);
-  neo430_printf("NEO430 - timer CTRL   : %x\n", TMR_CT);
-  neo430_printf("NEO430 - timer IRQs/s : %u\n", (uint16_t)NEO430_TIMER_F);
+  uint16_t timer_thres;
+  if (neo430_timer_config_freq(NEO430_TIMER_F, &timer_thres)) {
+    neo430_printf("NEO430: timer frequency config error!\n");
+    while(1);
+  }
+
+  neo430_printf("NEO430: clock speed  = %n Hz\n", CLOCKSPEED_32bit);
+  neo430_printf("NEO430: timer IRQs/s = %u\n", (uint16_t)NEO430_TIMER_F);
 #if USE_NEO430_MUL
-  neo430_printf("NEO430 - using MULDIV unit for matrix core operations!\n");
+  neo430_printf("NEO430: using NEO430 MULDIV unit for matrix core operations\n");
 #endif
-  neo430_printf("NEO430 - running coremark (%u iterations). This may take some time...\n\n", (uint16_t)ITERATIONS);
+  neo430_printf("NEO430: running coremark (%u iterations). This may take some time...\n\n", (uint16_t)ITERATIONS);
 
   // enable global IRQs
   neo430_eint();

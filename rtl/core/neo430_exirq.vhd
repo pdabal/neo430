@@ -13,25 +13,35 @@
 -- # cleared. ext_irq_i(0) has highest priority while ext_irq_i(7) has the lowest priority.        #
 -- # Each enabled interrupt channel can also be triggered by software using the sw_irq_x bits.     #
 -- # ********************************************************************************************* #
--- # This file is part of the NEO430 Processor project: https://github.com/stnolting/neo430        #
--- # Copyright by Stephan Nolting: stnolting@gmail.com                                             #
+-- # BSD 3-Clause License                                                                          #
 -- #                                                                                               #
--- # This source file may be used and distributed without restriction provided that this copyright #
--- # statement is not removed from the file and that any derivative work contains the original     #
--- # copyright notice and the associated disclaimer.                                               #
+-- # Copyright (c) 2020, Stephan Nolting. All rights reserved.                                     #
 -- #                                                                                               #
--- # This source file is free software; you can redistribute it and/or modify it under the terms   #
--- # of the GNU Lesser General Public License as published by the Free Software Foundation,        #
--- # either version 3 of the License, or (at your option) any later version.                       #
+-- # Redistribution and use in source and binary forms, with or without modification, are          #
+-- # permitted provided that the following conditions are met:                                     #
 -- #                                                                                               #
--- # This source is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;      #
--- # without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.     #
--- # See the GNU Lesser General Public License for more details.                                   #
+-- # 1. Redistributions of source code must retain the above copyright notice, this list of        #
+-- #    conditions and the following disclaimer.                                                   #
 -- #                                                                                               #
--- # You should have received a copy of the GNU Lesser General Public License along with this      #
--- # source; if not, download it from https://www.gnu.org/licenses/lgpl-3.0.en.html                #
+-- # 2. Redistributions in binary form must reproduce the above copyright notice, this list of     #
+-- #    conditions and the following disclaimer in the documentation and/or other materials        #
+-- #    provided with the distribution.                                                            #
+-- #                                                                                               #
+-- # 3. Neither the name of the copyright holder nor the names of its contributors may be used to  #
+-- #    endorse or promote products derived from this software without specific prior written      #
+-- #    permission.                                                                                #
+-- #                                                                                               #
+-- # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS   #
+-- # OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF               #
+-- # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE    #
+-- # COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,     #
+-- # EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE #
+-- # GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED    #
+-- # AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING     #
+-- # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED  #
+-- # OF THE POSSIBILITY OF SUCH DAMAGE.                                                            #
 -- # ********************************************************************************************* #
--- # Stephan Nolting, Hannover, Germany                                                 06.12.2019 #
+-- # The NEO430 Processor - https://github.com/stnolting/neo430                                    #
 -- #################################################################################################
 
 library ieee;
@@ -53,7 +63,7 @@ entity neo430_exirq is
     -- cpu interrupt --
     cpu_irq_o : out std_ulogic;
     -- external interrupt lines --
-    ext_irq_i : in  std_ulogic_vector(7 downto 0); -- IRQ
+    ext_irq_i : in  std_ulogic_vector(7 downto 0); -- IRQ, triggering on HIGH level
     ext_ack_o : out std_ulogic_vector(7 downto 0)  -- acknowledge
   );
 end neo430_exirq;
@@ -61,22 +71,21 @@ end neo430_exirq;
 architecture neo430_exirq_rtl of neo430_exirq is
 
   -- control register bits --
-  constant ctrl_src0_c        : natural :=  0; -- r/-: IRQ source bit 0
-  constant ctrl_src1_c        : natural :=  1; -- r/-: IRQ source bit 1
-  constant ctrl_src2_c        : natural :=  2; -- r/-: IRQ source bit 2
-  constant ctrl_en_c          : natural :=  3; -- r/w: unit enable
-  constant ctrl_sw_irq_c      : natural :=  4; -- -/w: enable SW IRQ trigger, auto-clears
-  constant ctrl_sw_irq_sel0_c : natural :=  5; -- -/w: SW IRQ select bit 0
-  constant ctrl_sw_irq_sel1_c : natural :=  6; -- -/w: SW IRQ select bit 1
-  constant ctrl_sw_irq_sel2_c : natural :=  7; -- -/w: SW IRQ select bit 2
-  constant ctrl_en_irq0_c     : natural :=  8; -- r/w: IRQ channel 0 enable
-  constant ctrl_en_irq1_c     : natural :=  9; -- r/w: IRQ channel 1 enable
-  constant ctrl_en_irq2_c     : natural := 10; -- r/w: IRQ channel 2 enable
-  constant ctrl_en_irq3_c     : natural := 11; -- r/w: IRQ channel 3 enable
-  constant ctrl_en_irq4_c     : natural := 12; -- r/w: IRQ channel 4 enable
-  constant ctrl_en_irq5_c     : natural := 13; -- r/w: IRQ channel 5 enable
-  constant ctrl_en_irq6_c     : natural := 14; -- r/w: IRQ channel 6 enable
-  constant ctrl_en_irq7_c     : natural := 15; -- r/w: IRQ channel 7 enable
+  constant ctrl_irq_sel0_c : natural :=  0; -- r/w: IRQ source bit 0 (r); SW IRQ select (w)
+  constant ctrl_irq_sel1_c : natural :=  1; -- r/w: IRQ source bit 1 (r); SW IRQ select (w)
+  constant ctrl_irq_sel2_c : natural :=  2; -- r/w: IRQ source bit 2 (r); SW IRQ select (w)
+  constant ctrl_en_c       : natural :=  3; -- r/w: unit enable
+  constant ctrl_sw_irq_c   : natural :=  4; -- -/w: use irq_sel as SW IRQ trigger, auto-clears
+  constant ctrl_ack_irq_c  : natural :=  5; -- -/w: ACK current IRQ, auto-clears
+  -- ...
+  constant ctrl_en_irq0_c  : natural :=  8; -- r/w: IRQ channel 0 enable
+  constant ctrl_en_irq1_c  : natural :=  9; -- r/w: IRQ channel 1 enable
+  constant ctrl_en_irq2_c  : natural := 10; -- r/w: IRQ channel 2 enable
+  constant ctrl_en_irq3_c  : natural := 11; -- r/w: IRQ channel 3 enable
+  constant ctrl_en_irq4_c  : natural := 12; -- r/w: IRQ channel 4 enable
+  constant ctrl_en_irq5_c  : natural := 13; -- r/w: IRQ channel 5 enable
+  constant ctrl_en_irq6_c  : natural := 14; -- r/w: IRQ channel 6 enable
+  constant ctrl_en_irq7_c  : natural := 15; -- r/w: IRQ channel 7 enable
 
   -- IO space: module base address --
   constant hi_abb_c : natural := index_size_f(io_size_c)-1; -- high address boundary bit
@@ -89,9 +98,10 @@ architecture neo430_exirq_rtl of neo430_exirq is
 
   -- r/w accessible registers --
   signal irq_enable  : std_ulogic_vector(7 downto 0);
-  signal enable      : std_ulogic;
+  signal enable      : std_ulogic; -- global enable
+  signal irq_sel     : std_ulogic_vector(2 downto 0);
   signal sw_trig     : std_ulogic;
-  signal sw_trig_src : std_ulogic_vector(2 downto 0);
+  signal ack_trig    : std_ulogic;
 
   -- irq input / ack output system --
   signal irq_sync, irq_raw, sw_irq, irq_valid, ack_mask : std_ulogic_vector(7 downto 0);
@@ -115,13 +125,15 @@ begin
   wr_access: process(clk_i)
   begin
     if rising_edge(clk_i) then
-      sw_trig <= '0';
+      sw_trig  <= '0';
+      ack_trig <= '0';
       if (wren = '1') then
+        irq_sel    <= data_i(ctrl_irq_sel2_c downto ctrl_irq_sel0_c);
         enable     <= data_i(ctrl_en_c);
         irq_enable <= data_i(ctrl_en_irq7_c downto ctrl_en_irq0_c);
-        -- software irq trigger --
-        sw_trig     <= data_i(ctrl_sw_irq_c);
-        sw_trig_src <= data_i(ctrl_sw_irq_sel2_c downto ctrl_sw_irq_sel0_c);
+        -- irq_sel options --
+        sw_trig    <= data_i(ctrl_sw_irq_c);
+        ack_trig   <= data_i(ctrl_ack_irq_c);
       end if;
     end if;
   end process wr_access;
@@ -137,10 +149,10 @@ begin
     end if;
   end process ext_irq_source_sync;
 
-  sw_irq_source: process(sw_trig, sw_trig_src)
+  sw_irq_source: process(sw_trig, irq_sel)
     variable sw_irq_v : std_ulogic_vector(3 downto 0);
   begin
-    sw_irq_v := sw_trig & sw_trig_src;
+    sw_irq_v := sw_trig & irq_sel;
     case sw_irq_v is
       when "1000" => sw_irq <= "00000001";
       when "1001" => sw_irq <= "00000010";
@@ -163,6 +175,9 @@ begin
   irq_core: process(clk_i)
   begin
     if rising_edge(clk_i) then
+      -- ack output --
+      ext_ack_o <= ack_mask;
+
       -- irq buffer --
       for i in 0 to 7 loop
         -- keep requests until they are acknowledged
@@ -170,23 +185,18 @@ begin
         irq_buf(i) <= (irq_buf(i) or irq_valid(i)) and enable and (not ack_mask(i));
       end loop; -- i
 
-      -- mini state FSM - defaults --
-      cpu_irq_o <= '0';
-      ext_ack_o <= (others => '0');
-
       -- mini state FSM --
+      cpu_irq_o <= '0';
       if (state = '0') or (enable = '0') then -- idle or deactivated
-        state       <= '0';
-        irq_src_reg <= irq_src; -- capture source
-        if (irq_fire = '1') then
-          cpu_irq_o <= '1'; -- trigger CPU
-          state     <= '1'; -- go to active IRQ state
+        state <= '0';
+        if (irq_fire = '1') and (enable = '1') then -- valid active IRQ
+          irq_src_reg <= irq_src; -- capture source
+          cpu_irq_o   <= '1'; -- trigger CPU interrupt
+          state       <= '1'; -- go to active IRQ state
         end if;
-
-      else -- active IRQ
-        if (rden = '1') then -- ACK when reading IRQ source
-          ext_ack_o <= ack_mask;
-          state     <= '0';
+      else -- active interrupt request
+        if (ack_trig = '1') or (enable = '0') then -- ack or disable
+          state <= '0';
         end if;
       end if;
     end if;
@@ -208,11 +218,11 @@ begin
 
   -- ACK priority decoder -----------------------------------------------------
   -- -----------------------------------------------------------------------------
-  ack_priority_dec: process(state, irq_src_reg)
-    variable irq_src_v : std_ulogic_vector(3 downto 0);
+  ack_priority_dec: process(state, ack_trig, irq_src_reg)
+    variable irq_ack_v : std_ulogic_vector(3 downto 0);
   begin
-    irq_src_v := state & irq_src_reg;
-    case irq_src_v is
+    irq_ack_v := (ack_trig and state) & irq_src_reg;
+    case irq_ack_v is
       when "1000" => ack_mask <= "00000001";
       when "1001" => ack_mask <= "00000010";
       when "1010" => ack_mask <= "00000100";
@@ -233,7 +243,7 @@ begin
     if rising_edge(clk_i) then
       data_o <= (others => '0');
       if (rden = '1') then
-        data_o(ctrl_src2_c downto ctrl_src0_c) <= irq_src_reg;
+        data_o(ctrl_irq_sel2_c downto ctrl_irq_sel0_c) <= irq_src_reg;
         data_o(ctrl_en_irq7_c downto ctrl_en_irq0_c) <= irq_enable;
         data_o(ctrl_en_c) <= enable;
       end if;

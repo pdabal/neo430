@@ -92,6 +92,20 @@ MAIN_RETURN_TYPE main(void) {
 #else
 MAIN_RETURN_TYPE main(int argc, char *argv[]) {
 #endif
+
+// -----------------------------------------------
+#ifndef NEO430_HWMUL_ABI_OVERRIDE
+#pragma warning ("Using SW multiplication. Use >>make clean compile CC_USER_FLAGS+=-DNEO430_HWMUL_ABI_OVERRIDE<< to use the NEO430 MULDIV unit instead (experimental!)")
+#else
+#pragma warning ("Using NEO430 MULDIV unit for multiplications (highly experimental!)")
+#endif
+
+#ifndef RUN_COREMARK
+  #pragma warning ("COREMARK HAS NOT BEEN COMPILED! Use >>make clean compile CC_USER_FLAGS+=-DRUN_COREMARK<< to compile it.")
+  return 0;
+#endif
+// -----------------------------------------------
+
 	ee_u16 i,j=0,num_algorithms=0;
 	ee_s16 known_id=-1,total_errors=0;
 	ee_u16 seedcrc=0;

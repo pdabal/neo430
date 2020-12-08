@@ -4,25 +4,35 @@
 -- # This is a read only memory providing information about the processor configuration obtained   #
 -- # from the top entity's generics.                                                               #
 -- # ********************************************************************************************* #
--- # This file is part of the NEO430 Processor project: https://github.com/stnolting/neo430        #
--- # Copyright by Stephan Nolting: stnolting@gmail.com                                             #
+-- # BSD 3-Clause License                                                                          #
 -- #                                                                                               #
--- # This source file may be used and distributed without restriction provided that this copyright #
--- # statement is not removed from the file and that any derivative work contains the original     #
--- # copyright notice and the associated disclaimer.                                               #
+-- # Copyright (c) 2020, Stephan Nolting. All rights reserved.                                     #
 -- #                                                                                               #
--- # This source file is free software; you can redistribute it and/or modify it under the terms   #
--- # of the GNU Lesser General Public License as published by the Free Software Foundation,        #
--- # either version 3 of the License, or (at your option) any later version.                       #
+-- # Redistribution and use in source and binary forms, with or without modification, are          #
+-- # permitted provided that the following conditions are met:                                     #
 -- #                                                                                               #
--- # This source is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;      #
--- # without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.     #
--- # See the GNU Lesser General Public License for more details.                                   #
+-- # 1. Redistributions of source code must retain the above copyright notice, this list of        #
+-- #    conditions and the following disclaimer.                                                   #
 -- #                                                                                               #
--- # You should have received a copy of the GNU Lesser General Public License along with this      #
--- # source; if not, download it from https://www.gnu.org/licenses/lgpl-3.0.en.html                #
+-- # 2. Redistributions in binary form must reproduce the above copyright notice, this list of     #
+-- #    conditions and the following disclaimer in the documentation and/or other materials        #
+-- #    provided with the distribution.                                                            #
+-- #                                                                                               #
+-- # 3. Neither the name of the copyright holder nor the names of its contributors may be used to  #
+-- #    endorse or promote products derived from this software without specific prior written      #
+-- #    permission.                                                                                #
+-- #                                                                                               #
+-- # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS   #
+-- # OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF               #
+-- # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE    #
+-- # COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,     #
+-- # EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE #
+-- # GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED    #
+-- # AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING     #
+-- # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED  #
+-- # OF THE POSSIBILITY OF SUCH DAMAGE.                                                            #
 -- # ********************************************************************************************* #
--- # Stephan Nolting, Hannover, Germany                                                 28.11.2019 #
+-- # The NEO430 Processor - https://github.com/stnolting/neo430                                    #
 -- #################################################################################################
 
 library ieee;
@@ -35,28 +45,29 @@ use neo430.neo430_package.all;
 entity neo430_sysconfig is
   generic (
     -- general configuration --
-    CLOCK_SPEED : natural := 100000000; -- main clock in Hz
-    IMEM_SIZE   : natural := 4*1024; -- internal IMEM size in bytes
-    DMEM_SIZE   : natural := 2*1024; -- internal DMEM size in bytes
+    CLOCK_SPEED  : natural := 100000000; -- main clock in Hz
+    IMEM_SIZE    : natural := 4*1024; -- internal IMEM size in bytes
+    DMEM_SIZE    : natural := 2*1024; -- internal DMEM size in bytes
     -- additional configuration --
-    USER_CODE   : std_ulogic_vector(15 downto 0) := x"0000"; -- custom user code
+    USER_CODE    : std_ulogic_vector(15 downto 0) := x"0000"; -- custom user code
     -- module configuration --
-    MULDIV_USE  : boolean := true; -- implement multiplier/divider unit?
-    WB32_USE    : boolean := true; -- implement WB32 unit?
-    WDT_USE     : boolean := true; -- implement WDT?
-    GPIO_USE    : boolean := true; -- implement GPIO unit?
-    TIMER_USE   : boolean := true; -- implement timer?
-    UART_USE    : boolean := true; -- implement UART?
-    CRC_USE     : boolean := true; -- implement CRC unit?
-    CFU_USE     : boolean := true; -- implement CF unit?
-    PWM_USE     : boolean := true; -- implement PWM controller?
-    TWI_USE     : boolean := true; -- implement TWI?
-    SPI_USE     : boolean := true; -- implement SPI?
-    TRNG_USE    : boolean := true; -- implement TRNG?
-    EXIRQ_USE   : boolean := true; -- implement EXIRQ? (default=true)
+    MULDIV_USE   : boolean := true; -- implement multiplier/divider unit?
+    WB32_USE     : boolean := true; -- implement WB32 unit?
+    WDT_USE      : boolean := true; -- implement WDT?
+    GPIO_USE     : boolean := true; -- implement GPIO unit?
+    TIMER_USE    : boolean := true; -- implement timer?
+    UART_USE     : boolean := true; -- implement UART?
+    CRC_USE      : boolean := true; -- implement CRC unit?
+    CFU_USE      : boolean := true; -- implement CF unit?
+    PWM_USE      : boolean := true; -- implement PWM controller?
+    TWI_USE      : boolean := true; -- implement TWI?
+    SPI_USE      : boolean := true; -- implement SPI?
+    TRNG_USE     : boolean := true; -- implement TRNG?
+    EXIRQ_USE    : boolean := true; -- implement EXIRQ?
+    FREQ_GEN_USE : boolean := true; -- implement FREQ_GEN?
     -- boot configuration --
-    BOOTLD_USE  : boolean := true; -- implement and use bootloader?
-    IMEM_AS_ROM : boolean := false -- implement IMEM as read-only memory?
+    BOOTLD_USE   : boolean := true; -- implement and use bootloader?
+    IMEM_AS_ROM  : boolean := false -- implement IMEM as read-only memory?
   );
   port (
     clk_i  : in  std_ulogic; -- global clock line
@@ -103,23 +114,23 @@ begin
   -- CPUID0: HW version --
   sysinfo_mem(0) <= hw_version_c; -- HW version
 
-  -- CPUID1: System setup (features) --
-  sysinfo_mem(1)(00) <= bool_to_ulogic_f(MULDIV_USE);     -- MULDIV present?
-  sysinfo_mem(1)(01) <= bool_to_ulogic_f(WB32_USE);       -- WB32 present?
-  sysinfo_mem(1)(02) <= bool_to_ulogic_f(WDT_USE);        -- WDT present?
-  sysinfo_mem(1)(03) <= bool_to_ulogic_f(GPIO_USE);       -- GPIO present?
-  sysinfo_mem(1)(04) <= bool_to_ulogic_f(TIMER_USE);      -- TIMER present?
-  sysinfo_mem(1)(05) <= bool_to_ulogic_f(UART_USE);       -- UART present?
-  sysinfo_mem(1)(06) <= bool_to_ulogic_f(use_dadd_cmd_c); -- DADD instruction present?
-  sysinfo_mem(1)(07) <= bool_to_ulogic_f(BOOTLD_USE);     -- bootloader present?
-  sysinfo_mem(1)(08) <= bool_to_ulogic_f(IMEM_AS_ROM);    -- IMEM implemented as true ROM?
-  sysinfo_mem(1)(09) <= bool_to_ulogic_f(CRC_USE);        -- CRC present?
-  sysinfo_mem(1)(10) <= bool_to_ulogic_f(CFU_USE);        -- CFU present?
-  sysinfo_mem(1)(11) <= bool_to_ulogic_f(PWM_USE);        -- PWM present?
-  sysinfo_mem(1)(12) <= bool_to_ulogic_f(TWI_USE);        -- TWI present?
-  sysinfo_mem(1)(13) <= bool_to_ulogic_f(SPI_USE);        -- SPI present?
-  sysinfo_mem(1)(14) <= bool_to_ulogic_f(TRNG_USE);       -- TRNG present?
-  sysinfo_mem(1)(15) <= bool_to_ulogic_f(EXIRQ_USE);      -- EXIRQ present?
+  -- CPUID1: System setup (available HW units / IO / peripheral devices) --
+  sysinfo_mem(1)(00) <= '1' when (MULDIV_USE   = true) else '0'; -- MULDIV present?
+  sysinfo_mem(1)(01) <= '1' when (WB32_USE     = true) else '0'; -- WB32 present?
+  sysinfo_mem(1)(02) <= '1' when (WDT_USE      = true) else '0'; -- WDT present?
+  sysinfo_mem(1)(03) <= '1' when (GPIO_USE     = true) else '0'; -- GPIO present?
+  sysinfo_mem(1)(04) <= '1' when (TIMER_USE    = true) else '0'; -- TIMER present?
+  sysinfo_mem(1)(05) <= '1' when (UART_USE     = true) else '0'; -- UART present?
+  sysinfo_mem(1)(06) <= '1' when (FREQ_GEN_USE = true) else '0'; -- FREQ_GEN present?
+  sysinfo_mem(1)(07) <= '1' when (BOOTLD_USE   = true) else '0'; -- bootloader present?
+  sysinfo_mem(1)(08) <= '1' when (IMEM_AS_ROM  = true) else '0'; -- IMEM implemented as true ROM?
+  sysinfo_mem(1)(09) <= '1' when (CRC_USE      = true) else '0'; -- CRC present?
+  sysinfo_mem(1)(10) <= '1' when (CFU_USE      = true) else '0'; -- CFU present?
+  sysinfo_mem(1)(11) <= '1' when (PWM_USE      = true) else '0'; -- PWM present?
+  sysinfo_mem(1)(12) <= '1' when (TWI_USE      = true) else '0'; -- TWI present?
+  sysinfo_mem(1)(13) <= '1' when (SPI_USE      = true) else '0'; -- SPI present?
+  sysinfo_mem(1)(14) <= '1' when (TRNG_USE     = true) else '0'; -- TRNG present?
+  sysinfo_mem(1)(15) <= '1' when (EXIRQ_USE    = true) else '0'; -- EXIRQ present?
 
   -- CPUID2: User code --
   sysinfo_mem(2) <= USER_CODE;
@@ -127,8 +138,11 @@ begin
   -- CPUID3: IMEM (ROM/RAM) size --
   sysinfo_mem(3) <= std_ulogic_vector(to_unsigned(IMEM_SIZE, 16)); -- size in bytes
 
-  -- CPUID4: reserved --
-  sysinfo_mem(4) <= (others => '0');
+  -- CPUID4: Advanced hardware configuration --
+  sysinfo_mem(4)(00) <= '1' when (use_dsp_mul_c    = true) else '0'; -- use DSP blocks for MULDIV.multiplier
+  sysinfo_mem(4)(01) <= '1' when (use_xalu_c       = true) else '0'; -- implement eXtended ALU functions
+  sysinfo_mem(4)(02) <= '1' when (low_power_mode_c = true) else '0'; -- use (experimental) low-power mode
+  sysinfo_mem(4)(15 downto 03) <= (others => '0'); -- reserved
 
   -- CPUID5: DMEM (RAM) size --
   sysinfo_mem(5) <= std_ulogic_vector(to_unsigned(DMEM_SIZE, 16)); -- size in bytes

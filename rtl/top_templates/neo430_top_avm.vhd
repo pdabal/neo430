@@ -1,25 +1,35 @@
 -- #################################################################################################
 -- #  << NEO430 - Processor Top Entity with Avalon-Compatible Master Interface >>                  #
 -- # ********************************************************************************************* #
--- # This file is part of the NEO430 Processor project: https://github.com/stnolting/neo430        #
--- # Copyright by Stephan Nolting: stnolting@gmail.com                                             #
+-- # BSD 3-Clause License                                                                          #
 -- #                                                                                               #
--- # This source file may be used and distributed without restriction provided that this copyright #
--- # statement is not removed from the file and that any derivative work contains the original     #
--- # copyright notice and the associated disclaimer.                                               #
+-- # Copyright (c) 2020, Stephan Nolting. All rights reserved.                                     #
 -- #                                                                                               #
--- # This source file is free software; you can redistribute it and/or modify it under the terms   #
--- # of the GNU Lesser General Public License as published by the Free Software Foundation,        #
--- # either version 3 of the License, or (at your option) any later version.                       #
+-- # Redistribution and use in source and binary forms, with or without modification, are          #
+-- # permitted provided that the following conditions are met:                                     #
 -- #                                                                                               #
--- # This source is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;      #
--- # without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.     #
--- # See the GNU Lesser General Public License for more details.                                   #
+-- # 1. Redistributions of source code must retain the above copyright notice, this list of        #
+-- #    conditions and the following disclaimer.                                                   #
 -- #                                                                                               #
--- # You should have received a copy of the GNU Lesser General Public License along with this      #
--- # source; if not, download it from https://www.gnu.org/licenses/lgpl-3.0.en.html                #
+-- # 2. Redistributions in binary form must reproduce the above copyright notice, this list of     #
+-- #    conditions and the following disclaimer in the documentation and/or other materials        #
+-- #    provided with the distribution.                                                            #
+-- #                                                                                               #
+-- # 3. Neither the name of the copyright holder nor the names of its contributors may be used to  #
+-- #    endorse or promote products derived from this software without specific prior written      #
+-- #    permission.                                                                                #
+-- #                                                                                               #
+-- # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS   #
+-- # OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF               #
+-- # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE    #
+-- # COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,     #
+-- # EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE #
+-- # GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED    #
+-- # AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING     #
+-- # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED  #
+-- # OF THE POSSIBILITY OF SUCH DAMAGE.                                                            #
 -- # ********************************************************************************************* #
--- # Stephan Nolting, Hannover, Germany                                                 10.01.2020 #
+-- # The NEO430 Processor - https://github.com/stnolting/neo430                                    #
 -- #################################################################################################
 
 library ieee;
@@ -32,28 +42,29 @@ use neo430.neo430_package.all;
 entity neo430_top_avm is
   generic (
     -- general configuration --
-    CLOCK_SPEED     : natural := 100000000; -- main clock in Hz
-    IMEM_SIZE       : natural := 4*1024; -- internal IMEM size in bytes, max 48kB (default=4kB)
-    DMEM_SIZE       : natural := 2*1024; -- internal DMEM size in bytes, max 12kB (default=2kB)
+    CLOCK_SPEED  : natural := 100000000; -- main clock in Hz
+    IMEM_SIZE    : natural := 4*1024; -- internal IMEM size in bytes, max 48kB (default=4kB)
+    DMEM_SIZE    : natural := 2*1024; -- internal DMEM size in bytes, max 12kB (default=2kB)
     -- additional configuration --
-    USER_CODE       : std_logic_vector(15 downto 0) := x"0000"; -- custom user code
+    USER_CODE    : std_logic_vector(15 downto 0) := x"0000"; -- custom user code
     -- module configuration --
-    MULDIV_USE      : boolean := true; -- implement multiplier/divider unit? (default=true)
-    WB32_USE        : boolean := true; -- implement WB32 unit? (default=true)
-    WDT_USE         : boolean := true; -- implement WDT? (default=true)
-    GPIO_USE        : boolean := true; -- implement GPIO unit? (default=true)
-    TIMER_USE       : boolean := true; -- implement timer? (default=true)
-    UART_USE        : boolean := true; -- implement UART? (default=true)
-    CRC_USE         : boolean := true; -- implement CRC unit? (default=true)
-    CFU_USE         : boolean := false; -- implement custom functions unit? (default=false)
-    PWM_USE         : boolean := true; -- implement PWM controller?
-    TWI_USE         : boolean := true; -- implement two wire serial interface? (default=true)
-    SPI_USE         : boolean := true; -- implement SPI? (default=true)
-    TRNG_USE        : boolean := false; -- implement TRNG? (default=false)
-    EXIRQ_USE       : boolean := true; -- implement EXIRQ? (default=true)
+    MULDIV_USE   : boolean := true; -- implement multiplier/divider unit? (default=true)
+    WB32_USE     : boolean := true; -- implement WB32 unit? (default=true)
+    WDT_USE      : boolean := true; -- implement WDT? (default=true)
+    GPIO_USE     : boolean := true; -- implement GPIO unit? (default=true)
+    TIMER_USE    : boolean := true; -- implement timer? (default=true)
+    UART_USE     : boolean := true; -- implement UART? (default=true)
+    CRC_USE      : boolean := true; -- implement CRC unit? (default=true)
+    CFU_USE      : boolean := false; -- implement custom functions unit? (default=false)
+    PWM_USE      : boolean := true; -- implement PWM controller?
+    TWI_USE      : boolean := true; -- implement two wire serial interface? (default=true)
+    SPI_USE      : boolean := true; -- implement SPI? (default=true)
+    TRNG_USE     : boolean := false; -- implement TRNG? (default=false)
+    EXIRQ_USE    : boolean := true; -- implement EXIRQ? (default=true)
+    FREQ_GEN_USE : boolean := true; -- implement FREQ_GEN? (default=true)
     -- boot configuration --
-    BOOTLD_USE      : boolean := true; -- implement and use bootloader? (default=true)
-    IMEM_AS_ROM     : boolean := false -- implement IMEM as read-only memory? (default=false)
+    BOOTLD_USE   : boolean := true; -- implement and use bootloader? (default=true)
+    IMEM_AS_ROM  : boolean := false -- implement IMEM as read-only memory? (default=false)
   );
   port (
     -- global control --
@@ -64,6 +75,8 @@ entity neo430_top_avm is
     gpio_i          : in  std_logic_vector(15 downto 0); -- parallel input
     -- pwm channels --
     pwm_o           : out std_logic_vector(03 downto 0); -- pwm channels
+    -- arbitrary frequency generator --
+    freq_gen_o      : out std_logic_vector(02 downto 0); -- programmable frequency output
     -- UART --
     uart_txd_o      : out std_logic; -- UART send data
     uart_rxd_i      : in  std_logic; -- UART receive data
@@ -76,7 +89,7 @@ entity neo430_top_avm is
     twi_scl_io      : inout std_logic; -- twi serial clock line
     -- external interrupts --
     ext_irq_i       : in  std_logic_vector(07 downto 0); -- external interrupt request lines
-    ext_ack_o       : out std_logic_vector(07 downto 0)  -- external interrupt request acknowledges
+    ext_ack_o       : out std_logic_vector(07 downto 0); -- external interrupt request acknowledges
     -- Avalon master interface --
     avm_address     : out std_logic_vector(31 downto 0);
     avm_readdata    : in  std_logic_vector(31 downto 0);
@@ -130,6 +143,7 @@ architecture neo430_top_avm_rtl of neo430_top_avm is
   signal spi_cs_o_int   : std_ulogic_vector(05 downto 0);
   signal irq_i_int      : std_ulogic_vector(07 downto 0);
   signal irq_ack_o_int  : std_ulogic_vector(07 downto 0);
+  signal freq_gen_o_int : std_ulogic_vector(02 downto 0);
   constant usrcode_c    : std_ulogic_vector(15 downto 0) := std_ulogic_vector(USER_CODE);
 
   -- misc --
@@ -142,28 +156,29 @@ begin
   neo430_top_inst: neo430_top
   generic map (
     -- general configuration --
-    CLOCK_SPEED => CLOCK_SPEED,       -- main clock in Hz
-    IMEM_SIZE   => IMEM_SIZE,         -- internal IMEM size in bytes, max 48kB (default=4kB)
-    DMEM_SIZE   => DMEM_SIZE,         -- internal DMEM size in bytes, max 12kB (default=2kB)
+    CLOCK_SPEED  => CLOCK_SPEED,      -- main clock in Hz
+    IMEM_SIZE    => IMEM_SIZE,        -- internal IMEM size in bytes, max 48kB (default=4kB)
+    DMEM_SIZE    => DMEM_SIZE,        -- internal DMEM size in bytes, max 12kB (default=2kB)
     -- additional configuration --
-    USER_CODE   => usrcode_c,         -- custom user code
+    USER_CODE    => usrcode_c,        -- custom user code
     -- module configuration --
-    MULDIV_USE  => MULDIV_USE,        -- implement multiplier/divider unit? (default=true)
-    WB32_USE    => WB32_USE,          -- implement WB32 unit? (default=true)
-    WDT_USE     => WDT_USE,           -- implement WDT? (default=true)
-    GPIO_USE    => GPIO_USE,          -- implement GPIO unit? (default=true)
-    TIMER_USE   => TIMER_USE,         -- implement timer? (default=true)
-    UART_USE    => UART_USE,          -- implement UART? (default=true)
-    CRC_USE     => CRC_USE,           -- implement CRC unit? (default=true)
-    CFU_USE     => CFU_USE,           -- implement CF unit? (default=false)
-    PWM_USE     => PWM_USE,           -- implement PWM controller? (default=true)
-    TWI_USE     => TWI_USE,           -- implement two wire serial interface? (default=true)
-    SPI_USE     => SPI_USE,           -- implement SPI? (default=true)
-    TRNG_USE    => TRNG_USE,          -- implement TRNG? (default=false)
-    EXIRQ_USE   => EXIRQ_USE,         -- implement EXIRQ? (default=true)
+    MULDIV_USE   => MULDIV_USE,       -- implement multiplier/divider unit? (default=true)
+    WB32_USE     => WB32_USE,         -- implement WB32 unit? (default=true)
+    WDT_USE      => WDT_USE,          -- implement WDT? (default=true)
+    GPIO_USE     => GPIO_USE,         -- implement GPIO unit? (default=true)
+    TIMER_USE    => TIMER_USE,        -- implement timer? (default=true)
+    UART_USE     => UART_USE,         -- implement UART? (default=true)
+    CRC_USE      => CRC_USE,          -- implement CRC unit? (default=true)
+    CFU_USE      => CFU_USE,          -- implement CF unit? (default=false)
+    PWM_USE      => PWM_USE,          -- implement PWM controller? (default=true)
+    TWI_USE      => TWI_USE,          -- implement two wire serial interface? (default=true)
+    SPI_USE      => SPI_USE,          -- implement SPI? (default=true)
+    TRNG_USE     => TRNG_USE,         -- implement TRNG? (default=false)
+    EXIRQ_USE    => EXIRQ_USE,        -- implement EXIRQ? (default=true)
+    FREQ_GEN_USE => FREQ_GEN_USE,     -- implement FREQ_GEN? (default=true)
     -- boot configuration --
-    BOOTLD_USE  => BOOTLD_USE,        -- implement and use bootloader? (default=true)
-    IMEM_AS_ROM => IMEM_AS_ROM        -- implement IMEM as read-only memory? (default=false)
+    BOOTLD_USE   => BOOTLD_USE,       -- implement and use bootloader? (default=true)
+    IMEM_AS_ROM  => IMEM_AS_ROM       -- implement IMEM as read-only memory? (default=false)
   )
   port map (
     -- global control --
@@ -174,6 +189,8 @@ begin
     gpio_i      => gpio_i_int,        -- parallel input
     -- pwm channels --
     pwm_o       => pwm_o_int,         -- pwm channels
+    -- arbitrary frequency generator --
+    freq_gen_o  => freq_gen_o_int,    -- programmable frequency output
     -- serial com --
     uart_txd_o  => uart_txd_o_int,    -- UART send data
     uart_rxd_i  => uart_rxd_i_int,    -- UART receive data
@@ -193,8 +210,8 @@ begin
     wb_cyc_o    => wb_core.cyc,       -- valid cycle
     wb_ack_i    => wb_core.ack,       -- transfer acknowledge
     -- interrupts --
-    irq_i       => irq_i_int,         -- external interrupt request line
-    irq_ack_o   => irq_ack_o_int      -- external interrupt request acknowledge
+    ext_irq_i   => irq_i_int,          -- external interrupt request line
+    ext_ack_o   => irq_ack_o_int       -- external interrupt request acknowledge
   );
 
 
@@ -205,7 +222,7 @@ begin
   gpio_i_int     <= std_ulogic_vector(gpio_i);
   uart_rxd_i_int <= std_ulogic(uart_rxd_i);
   spi_miso_i_int <= std_ulogic(spi_miso_i);
-  irq_i_int      <= std_ulogic_vector(irq_i);
+  irq_i_int      <= std_ulogic_vector(ext_irq_i);
 
   gpio_o         <= std_logic_vector(gpio_o_int);
   pwm_o          <= std_logic_vector(pwm_o_int);
@@ -213,7 +230,8 @@ begin
   spi_sclk_o     <= std_logic(spi_sclk_o_int);
   spi_mosi_o     <= std_logic(spi_mosi_o_int);
   spi_cs_o       <= std_logic_vector(spi_cs_o_int);
-  irq_ack_o      <= std_logic_vector(irq_ack_o_int);
+  ext_ack_o      <= std_logic_vector(irq_ack_o_int);
+  freq_gen_o     <= std_logic_vector(freq_gen_o_int);
 
 
   -- Wishbone-to-Avalon Bridge ------------------------------------------------

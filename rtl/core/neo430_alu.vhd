@@ -1,28 +1,37 @@
 -- #################################################################################################
 -- #  << NEO430 - Arithmetical/Logical Unit >>                                                     #
 -- # ********************************************************************************************* #
--- # Main data processing ALU and operand registers.                                               #
--- # BCD arithmetic operations need 2 cycles, all other operations only take one cycle.            #
+-- # Main data processing ALU and operand registers. DADD instruction is not supported!            #
 -- # ********************************************************************************************* #
--- # This file is part of the NEO430 Processor project: https://github.com/stnolting/neo430        #
--- # Copyright by Stephan Nolting: stnolting@gmail.com                                             #
+-- # BSD 3-Clause License                                                                          #
 -- #                                                                                               #
--- # This source file may be used and distributed without restriction provided that this copyright #
--- # statement is not removed from the file and that any derivative work contains the original     #
--- # copyright notice and the associated disclaimer.                                               #
+-- # Copyright (c) 2020, Stephan Nolting. All rights reserved.                                     #
 -- #                                                                                               #
--- # This source file is free software; you can redistribute it and/or modify it under the terms   #
--- # of the GNU Lesser General Public License as published by the Free Software Foundation,        #
--- # either version 3 of the License, or (at your option) any later version.                       #
+-- # Redistribution and use in source and binary forms, with or without modification, are          #
+-- # permitted provided that the following conditions are met:                                     #
 -- #                                                                                               #
--- # This source is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;      #
--- # without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.     #
--- # See the GNU Lesser General Public License for more details.                                   #
+-- # 1. Redistributions of source code must retain the above copyright notice, this list of        #
+-- #    conditions and the following disclaimer.                                                   #
 -- #                                                                                               #
--- # You should have received a copy of the GNU Lesser General Public License along with this      #
--- # source; if not, download it from https://www.gnu.org/licenses/lgpl-3.0.en.html                #
+-- # 2. Redistributions in binary form must reproduce the above copyright notice, this list of     #
+-- #    conditions and the following disclaimer in the documentation and/or other materials        #
+-- #    provided with the distribution.                                                            #
+-- #                                                                                               #
+-- # 3. Neither the name of the copyright holder nor the names of its contributors may be used to  #
+-- #    endorse or promote products derived from this software without specific prior written      #
+-- #    permission.                                                                                #
+-- #                                                                                               #
+-- # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS   #
+-- # OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF               #
+-- # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE    #
+-- # COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,     #
+-- # EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE #
+-- # GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED    #
+-- # AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING     #
+-- # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED  #
+-- # OF THE POSSIBILITY OF SUCH DAMAGE.                                                            #
 -- # ********************************************************************************************* #
--- # Stephan Nolting, Hannover, Germany                                                 21.11.2019 #
+-- # The NEO430 Processor - https://github.com/stnolting/neo430                                    #
 -- #################################################################################################
 
 library ieee;
@@ -50,16 +59,15 @@ end neo430_alu;
 
 architecture neo430_alu_rtl of neo430_alu is
 
-  signal op_data          : std_ulogic_vector(15 downto 0); -- operand data
-  signal op_a_ff, op_b_ff : std_ulogic_vector(15 downto 0); -- operand register
-  signal add_res          : std_ulogic_vector(17 downto 0); -- adder/subtractor kernel result
-  signal dadd_res         : std_ulogic_vector(16 downto 0); -- decimal adder kernel result
-  signal dadd_res_ff      : std_ulogic_vector(16 downto 0); -- decimal adder kernel result buffered
-  signal alu_res          : std_ulogic_vector(15 downto 0); -- alu result
-  signal data_res         : std_ulogic_vector(15 downto 0); -- final alu result
-  signal zero             : std_ulogic; -- zero detector
-  signal negative         : std_ulogic; -- sign detector
-  signal parity           : std_ulogic; -- parity detector
+  signal op_data  : std_ulogic_vector(15 downto 0); -- operand data
+  signal op_a_ff  : std_ulogic_vector(15 downto 0); -- operand register A
+  signal op_b_ff  : std_ulogic_vector(15 downto 0); -- operand register B
+  signal add_res  : std_ulogic_vector(17 downto 0); -- adder/subtractor kernel result
+  signal alu_res  : std_ulogic_vector(15 downto 0); -- alu result
+  signal data_res : std_ulogic_vector(15 downto 0); -- final alu result
+  signal zero     : std_ulogic; -- zero detector
+  signal negative : std_ulogic; -- sign detector
+  signal parity   : std_ulogic; -- parity detector
 
 begin
 
@@ -80,8 +88,6 @@ begin
       if (ctrl_i(ctrl_alu_opb_wr_c) = '1') then
         op_b_ff <= op_data;
       end if;
-      -- DADD pipeline register --
-      dadd_res_ff <= dadd_res;
     end if;
   end process operand_register;
 
@@ -142,29 +148,9 @@ begin
   end process binary_arithmetic_core;
 
 
-  -- Binary Coded Decimal Arithmetic Core -------------------------------------
-  -- -----------------------------------------------------------------------------
-  bcd_arithmetic_core: process(op_a_ff, op_b_ff, sreg_i)
-    variable dsum_ll_v, dsum_lh_v, dsum_hl_v, dsum_hh_v : std_ulogic_vector(4 downto 0);
-  begin
-    -- four 4-bit BCD adders --
-    dsum_ll_v := bcd_add4_f(op_a_ff(03 downto 00), op_b_ff(03 downto 00), sreg_i(sreg_c_c));
-    dsum_lh_v := bcd_add4_f(op_a_ff(07 downto 04), op_b_ff(07 downto 04), dsum_ll_v(4));
-    dsum_hl_v := bcd_add4_f(op_a_ff(11 downto 08), op_b_ff(11 downto 08), dsum_lh_v(4));
-    dsum_hh_v := bcd_add4_f(op_a_ff(15 downto 12), op_b_ff(15 downto 12), dsum_hl_v(4));
-
-    -- output --
-    dadd_res(03 downto 00) <= dsum_ll_v(3 downto 0);
-    dadd_res(07 downto 04) <= dsum_lh_v(3 downto 0);
-    dadd_res(11 downto 08) <= dsum_hl_v(3 downto 0);
-    dadd_res(15 downto 12) <= dsum_hh_v(3 downto 0);
-    dadd_res(16) <= dsum_hh_v(4);
-  end process bcd_arithmetic_core;
-
-
   -- ALU Core -----------------------------------------------------------------
   -- -----------------------------------------------------------------------------
-  alu_core: process(ctrl_i, op_a_ff, op_b_ff, sreg_i, negative, zero, parity, add_res, dadd_res_ff)
+  alu_core: process(ctrl_i, op_a_ff, op_b_ff, sreg_i, negative, zero, parity, add_res)
   begin
     -- defaults --
     alu_res <= op_a_ff;
@@ -185,17 +171,6 @@ begin
         alu_res <= add_res(15 downto 0);
         flag_o(flag_c_c) <= add_res(16);
         flag_o(flag_v_c) <= add_res(17);
-
-      when alu_dadd_c => -- r <= a + b + c (decimal)
-        if (use_dadd_cmd_c = true) then -- implement DADD instruction at all?
-          alu_res <= dadd_res_ff(15 downto 0);
-          flag_o(flag_c_c) <= dadd_res_ff(16);
-          flag_o(flag_v_c) <= '0';
-        else -- output is undefined when DADD instruction is disabled
-          alu_res <= (others => '-');
-          flag_o(flag_c_c) <= '-';
-          flag_o(flag_v_c) <= '-';
-        end if;
 
       when alu_and_c => -- r <= a & b
         alu_res <= op_a_ff and op_b_ff;
@@ -261,12 +236,21 @@ begin
         flag_o(flag_n_c) <= sreg_i(sreg_n_c); -- keep
         flag_o(flag_z_c) <= sreg_i(sreg_z_c); -- keep
 
-      when others => -- alu_mov_c : r <= a
+      when alu_mov_c => -- r <= a
         alu_res <= op_a_ff;
         flag_o(flag_c_c) <= sreg_i(sreg_c_c); -- keep
         flag_o(flag_v_c) <= sreg_i(sreg_v_c); -- keep
         flag_o(flag_n_c) <= sreg_i(sreg_n_c); -- keep
         flag_o(flag_z_c) <= sreg_i(sreg_z_c); -- keep
+
+      when others => -- undefined
+        alu_res <= (others => '-');
+        flag_o(flag_c_c) <= '-';
+        flag_o(flag_v_c) <= '-';
+        flag_o(flag_n_c) <= '-';
+        flag_o(flag_z_c) <= '-';
+        flag_o(flag_p_c) <= '-';
+
     end case;
   end process alu_core;
 

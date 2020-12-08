@@ -32,9 +32,8 @@ Modified for neo430 by Stephan Nolting
 // Manual NEO430 config:
 #define BAUD_RATE       (19200)
 #define ITERATIONS      (2000)
-#define NEO430_TIMER_F  (10) // Hertz
-#define FLAGS_STR        "-Os" // compiler optimization
-#define USE_NEO430_MUL   0 // set 1 to use MULDIV unit for matrix core operations
+#define NEO430_TIMER_F  (10) // Hz
+#define FLAGS_STR        "-> see makefile" // compiler optimization
 
 // For debugging
 #define xstr(a) str(a)

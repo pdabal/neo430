@@ -6,25 +6,35 @@
 -- # the counter can be automatically reset when reaching the threshold value to restart counting. #
 -- # Configure THRES before enabling the timer to prevent false interrupt requests.                #
 -- # ********************************************************************************************* #
--- # This file is part of the NEO430 Processor project: https://github.com/stnolting/neo430        #
--- # Copyright by Stephan Nolting: stnolting@gmail.com                                             #
+-- # BSD 3-Clause License                                                                          #
 -- #                                                                                               #
--- # This source file may be used and distributed without restriction provided that this copyright #
--- # statement is not removed from the file and that any derivative work contains the original     #
--- # copyright notice and the associated disclaimer.                                               #
+-- # Copyright (c) 2020, Stephan Nolting. All rights reserved.                                     #
 -- #                                                                                               #
--- # This source file is free software; you can redistribute it and/or modify it under the terms   #
--- # of the GNU Lesser General Public License as published by the Free Software Foundation,        #
--- # either version 3 of the License, or (at your option) any later version.                       #
+-- # Redistribution and use in source and binary forms, with or without modification, are          #
+-- # permitted provided that the following conditions are met:                                     #
 -- #                                                                                               #
--- # This source is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;      #
--- # without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.     #
--- # See the GNU Lesser General Public License for more details.                                   #
+-- # 1. Redistributions of source code must retain the above copyright notice, this list of        #
+-- #    conditions and the following disclaimer.                                                   #
 -- #                                                                                               #
--- # You should have received a copy of the GNU Lesser General Public License along with this      #
--- # source; if not, download it from https://www.gnu.org/licenses/lgpl-3.0.en.html                #
+-- # 2. Redistributions in binary form must reproduce the above copyright notice, this list of     #
+-- #    conditions and the following disclaimer in the documentation and/or other materials        #
+-- #    provided with the distribution.                                                            #
+-- #                                                                                               #
+-- # 3. Neither the name of the copyright holder nor the names of its contributors may be used to  #
+-- #    endorse or promote products derived from this software without specific prior written      #
+-- #    permission.                                                                                #
+-- #                                                                                               #
+-- # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS   #
+-- # OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF               #
+-- # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE    #
+-- # COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,     #
+-- # EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE #
+-- # GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED    #
+-- # AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING     #
+-- # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED  #
+-- # OF THE POSSIBILITY OF SUCH DAMAGE.                                                            #
 -- # ********************************************************************************************* #
--- #  tephan Nolting, Hannover, Germany                                                 16.01.2020 #
+-- # The NEO430 Processor - https://github.com/stnolting/neo430                                    #
 -- #################################################################################################
 
 library ieee;
@@ -58,13 +68,13 @@ architecture neo430_timer_rtl of neo430_timer is
   constant lo_abb_c : natural := index_size_f(timer_size_c); -- low address boundary bit
 
   -- control reg bits --
-  constant ctrl_en_bit_c     : natural := 0; -- r/w: timer enable
-  constant ctrl_arst_bit_c   : natural := 1; -- r/w: auto reset on match
-  constant ctrl_irq_en_bit_c : natural := 2; -- r/w: interrupt enable
-  constant ctrl_run_c        : natural := 3; -- r/w: start/stop timer
-  constant ctrl_prsc0_bit_c  : natural := 4; -- r/w: prescaler select bit 0
-  constant ctrl_prsc1_bit_c  : natural := 5; -- r/w: prescaler select bit 1
-  constant ctrl_prsc2_bit_c  : natural := 6; -- r/w: prescaler select bit 2
+  constant ctrl_en_c        : natural :=  0; -- r/w: timer enable
+  constant ctrl_arst_c      : natural :=  1; -- r/w: auto reset on match
+  constant ctrl_irq_en_c    : natural :=  2; -- r/w: interrupt enable
+  constant ctrl_run_c       : natural :=  3; -- r/w: start/stop timer
+  constant ctrl_prsc0_c     : natural :=  4; -- r/w: prescaler select bit 0
+  constant ctrl_prsc1_c     : natural :=  5; -- r/w: prescaler select bit 1
+  constant ctrl_prsc2_c     : natural :=  6; -- r/w: prescaler select bit 2
 
   -- access control --
   signal acc_en : std_ulogic; -- module access enable
@@ -72,15 +82,15 @@ architecture neo430_timer_rtl of neo430_timer is
   signal wr_en  : std_ulogic; -- word write enable
 
   -- timer regs --
+  signal ctrl  : std_ulogic_vector(06 downto 0); -- r/w: control register
+  signal thres : std_ulogic_vector(15 downto 0); -- -/w: threshold register 
   signal cnt   : std_ulogic_vector(15 downto 0); -- r/-: counter register
-  signal thres : std_ulogic_vector(15 downto 0); -- r/w: threshold register 
-  signal ctrl  : std_ulogic_vector(06 downto 0); -- r/w: control register 
 
   -- prescaler clock generator --
   signal prsc_tick : std_ulogic;
 
   -- timer control --
-  signal match       : std_ulogic; -- thres = cnt
+  signal match       : std_ulogic; -- set if thres == cnt
   signal irq_fire    : std_ulogic;
   signal irq_fire_ff : std_ulogic;
 
@@ -103,50 +113,49 @@ begin
           thres <= data_i;
         end if;
         if (addr = timer_ctrl_addr_c) then
-          ctrl(ctrl_en_bit_c)     <= data_i(ctrl_en_bit_c);
-          ctrl(ctrl_arst_bit_c)   <= data_i(ctrl_arst_bit_c);
-          ctrl(ctrl_irq_en_bit_c) <= data_i(ctrl_irq_en_bit_c);
-          ctrl(ctrl_run_c)        <= data_i(ctrl_run_c);
-          ctrl(ctrl_prsc0_bit_c)  <= data_i(ctrl_prsc0_bit_c);
-          ctrl(ctrl_prsc1_bit_c)  <= data_i(ctrl_prsc1_bit_c);
-          ctrl(ctrl_prsc2_bit_c)  <= data_i(ctrl_prsc2_bit_c);
+          ctrl(ctrl_en_c)     <= data_i(ctrl_en_c);
+          ctrl(ctrl_arst_c)   <= data_i(ctrl_arst_c);
+          ctrl(ctrl_irq_en_c) <= data_i(ctrl_irq_en_c);
+          ctrl(ctrl_run_c)    <= data_i(ctrl_run_c);
+          ctrl(ctrl_prsc0_c)  <= data_i(ctrl_prsc0_c);
+          ctrl(ctrl_prsc1_c)  <= data_i(ctrl_prsc1_c);
+          ctrl(ctrl_prsc2_c)  <= data_i(ctrl_prsc2_c);
         end if;
       end if;
     end if;
   end process wr_access;
 
-  -- timer clock select --
-  prsc_tick <= clkgen_i(to_integer(unsigned(ctrl(ctrl_prsc2_bit_c downto ctrl_prsc0_bit_c))));
-
   -- enable external clock generator --
-  clkgen_en_o <= ctrl(ctrl_en_bit_c);
+  clkgen_en_o <= ctrl(ctrl_en_c);
 
 
   -- Counter update -----------------------------------------------------------
   -- -----------------------------------------------------------------------------
-  counter_update: process(clk_i)
+  timer_cnt_core: process(clk_i)
   begin
     if rising_edge(clk_i) then
+      -- clock_enable buffer --
+      prsc_tick <= clkgen_i(to_integer(unsigned(ctrl(ctrl_prsc2_c downto ctrl_prsc0_c))));
       -- irq edge detector --
       irq_fire_ff <= irq_fire;
       -- counter update --
-      if (ctrl(ctrl_en_bit_c) = '0') then -- timer disabled
+      if (ctrl(ctrl_en_c) = '0') then -- timer disabled
         cnt <= (others => '0');
       elsif (ctrl(ctrl_run_c) = '1') then -- timer enabled, but is it started?
-        if (match = '1') and (ctrl(ctrl_arst_bit_c) = '1') then -- threshold match and auto reset?
+        if (match = '1') and (ctrl(ctrl_arst_c) = '1') then -- threshold match and auto reset?
           cnt <= (others => '0');
         elsif (match = '0') and (prsc_tick = '1') then -- count++
           cnt <= std_ulogic_vector(unsigned(cnt) + 1);
         end if;
       end if;
     end if;
-  end process counter_update;
+  end process timer_cnt_core;
 
   -- match --
   match <= '1' when (cnt = thres) else '0';
 
   -- interrupt line --
-  irq_fire <= match and ctrl(ctrl_en_bit_c) and ctrl(ctrl_irq_en_bit_c) and ctrl(ctrl_run_c);
+  irq_fire <= match and ctrl(ctrl_en_c) and ctrl(ctrl_irq_en_c); -- and ctrl(ctrl_run_c);
 
   -- edge detector --
   irq_o <= irq_fire and (not irq_fire_ff);
@@ -160,17 +169,17 @@ begin
       data_o <= (others => '0');
       if (rden_i = '1') and (acc_en = '1') then
         if (addr = timer_ctrl_addr_c) then
-          data_o(ctrl_en_bit_c)     <= ctrl(ctrl_en_bit_c);
-          data_o(ctrl_arst_bit_c)   <= ctrl(ctrl_arst_bit_c);
-          data_o(ctrl_irq_en_bit_c) <= ctrl(ctrl_irq_en_bit_c);
-          data_o(ctrl_run_c)        <= ctrl(ctrl_run_c);
-          data_o(ctrl_prsc0_bit_c)  <= ctrl(ctrl_prsc0_bit_c);
-          data_o(ctrl_prsc1_bit_c)  <= ctrl(ctrl_prsc1_bit_c);
-          data_o(ctrl_prsc2_bit_c)  <= ctrl(ctrl_prsc2_bit_c);
-        elsif (addr = timer_cnt_addr_c) then
+          data_o(ctrl_en_c)     <= ctrl(ctrl_en_c);
+          data_o(ctrl_arst_c)   <= ctrl(ctrl_arst_c);
+          data_o(ctrl_irq_en_c) <= ctrl(ctrl_irq_en_c);
+          data_o(ctrl_run_c)    <= ctrl(ctrl_run_c);
+          data_o(ctrl_prsc0_c)  <= ctrl(ctrl_prsc0_c);
+          data_o(ctrl_prsc1_c)  <= ctrl(ctrl_prsc1_c);
+          data_o(ctrl_prsc2_c)  <= ctrl(ctrl_prsc2_c);
+        else--if (addr = timer_cnt_addr_c) then
           data_o <= cnt;
-        else -- timer_thres_addr_c
-          data_o <= thres;
+--      else -- (addr = timer_thres_addr_c) then
+--        data_o <= thres;
         end if;
       end if;
     end if;

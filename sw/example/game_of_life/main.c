@@ -1,25 +1,35 @@
 // #################################################################################################
 // #  < Conway's Game of Life >                                                                    #
 // # ********************************************************************************************* #
-// # This file is part of the NEO430 Processor project: https://github.com/stnolting/neo430        #
-// # Copyright by Stephan Nolting: stnolting@gmail.com                                             #
+// # BSD 3-Clause License                                                                          #
 // #                                                                                               #
-// # This source file may be used and distributed without restriction provided that this copyright #
-// # statement is not removed from the file and that any derivative work contains the original     #
-// # copyright notice and the associated disclaimer.                                               #
+// # Copyright (c) 2020, Stephan Nolting. All rights reserved.                                     #
 // #                                                                                               #
-// # This source file is free software; you can redistribute it and/or modify it under the terms   #
-// # of the GNU Lesser General Public License as published by the Free Software Foundation,        #
-// # either version 3 of the License, or (at your option) any later version.                       #
+// # Redistribution and use in source and binary forms, with or without modification, are          #
+// # permitted provided that the following conditions are met:                                     #
 // #                                                                                               #
-// # This source is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;      #
-// # without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.     #
-// # See the GNU Lesser General Public License for more details.                                   #
+// # 1. Redistributions of source code must retain the above copyright notice, this list of        #
+// #    conditions and the following disclaimer.                                                   #
 // #                                                                                               #
-// # You should have received a copy of the GNU Lesser General Public License along with this      #
-// # source; if not, download it from https://www.gnu.org/licenses/lgpl-3.0.en.html                #
+// # 2. Redistributions in binary form must reproduce the above copyright notice, this list of     #
+// #    conditions and the following disclaimer in the documentation and/or other materials        #
+// #    provided with the distribution.                                                            #
+// #                                                                                               #
+// # 3. Neither the name of the copyright holder nor the names of its contributors may be used to  #
+// #    endorse or promote products derived from this software without specific prior written      #
+// #    permission.                                                                                #
+// #                                                                                               #
+// # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS   #
+// # OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF               #
+// # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE    #
+// # COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,     #
+// # EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE #
+// # GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED    #
+// # AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING     #
+// # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED  #
+// # OF THE POSSIBILITY OF SUCH DAMAGE.                                                            #
 // # ********************************************************************************************* #
-// # Stephan Nolting, Hannover, Germany                                                 29.04.2019 #
+// # The NEO430 Processor - https://github.com/stnolting/neo430                                    #
 // #################################################################################################
 
 
@@ -28,10 +38,11 @@
 #include <neo430.h>
 
 // Configuration
-#define NUM_CELLS_X 160 // must be a multiple of 8
-#define NUM_CELLS_Y 40
-#define BAUD_RATE   19200
-#define UNI_DELAY   500 // delay between iterations in ms
+#define NUM_CELLS_X   160 // must be a multiple of 8
+#define NUM_CELLS_Y   40
+#define BAUD_RATE     19200
+#define GEN_DELAY     500 // delay between iterations in ms
+#define TRNG_TAP_MASK 0b01010001000000 // highly experimental!
 
 // Global variables
 uint8_t universe[2][NUM_CELLS_X/8][NUM_CELLS_Y];
@@ -52,6 +63,8 @@ int main(void) {
 
   uint8_t u = 0, cell = 0, n = 0;
   int16_t x, y;
+  uint16_t trng_available = 0;
+  uint8_t trng_data = 0;
 
   // setup UART
   neo430_uart_setup(BAUD_RATE);
@@ -67,15 +80,36 @@ int main(void) {
   neo430_printf("Press any key to start a random-initialized torus-style universe of %ux%u cells.\n", NUM_CELLS_X, NUM_CELLS_Y);
   neo430_printf("You can pause/restart the simulation by pressing any key.\n");
 
-  // randomize until key pressed
-  while (neo430_uart_char_received() == 0) {
-    neo430_xorshift32();
+  // check if TRNG was synthesized
+  if ((SYS_FEATURES & (1<<SYS_TRNG_EN))) {
+    neo430_printf("TRNG detected. Using TRNG for universe initialization.\n");
+    neo430_trng_enable(TRNG_TAP_MASK);
+    trng_available = 1;
+  }
+
+  if (trng_available) {
+    neo430_uart_getc(); // wait for pressed key
+  }
+  else {
+    // randomize until key pressed
+    while (neo430_uart_char_received() == 0) {
+      neo430_xorshift32();
+    }
   }
 
   // initialize universe using random data
   for (x=0; x<NUM_CELLS_X/8; x++) {
     for (y=0; y<NUM_CELLS_Y; y++) {
-      universe[0][x][y] = (uint8_t)neo430_xorshift32();
+      if (trng_available) {
+        if (neo430_trng_get(&trng_data)) {
+          neo430_printf("TRNG error!\n");
+          return 1;
+        }
+        universe[0][x][y] = (uint8_t)trng_data; // use data from TRNG
+      }
+      else {
+        universe[0][x][y] = (uint8_t)neo430_xorshift32(); // use data von PRNG
+      }
     }
   }
 
@@ -113,7 +147,7 @@ int main(void) {
     generation++;
 
     // wait 500ms
-    neo430_cpu_delay_ms(UNI_DELAY);
+    neo430_cpu_delay_ms(GEN_DELAY);
   }
 
   return 0;
