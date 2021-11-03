@@ -1,6 +1,8 @@
+:information_source: The processor is **stable** and fully **synthesizable** (verified on Lattice, Intel and Xilinx platforms). This project is still active(!) but is currently
+*shelved* as I am focusing right now on the NEO430's "big brother": [The RISC-V-powered 32-bit **NEORV32**](https://github.com/stnolting/neorv32)
+
 # The NEO430 Processor
 
-[![Build Status](https://travis-ci.com/stnolting/neo430.svg?branch=master)](https://travis-ci.com/stnolting/neo430)
 [![license](https://img.shields.io/github/license/stnolting/neo430)](https://github.com/stnolting/neo430/blob/master/LICENSE)
 [![release](https://img.shields.io/github/v/release/stnolting/neo430)](https://github.com/stnolting/neo430/releases)
 ![processor status](https://img.shields.io/badge/processor%20status-stable-brightgreen)
@@ -48,8 +50,6 @@ FPGA board of choice (the NEO430 uses a FPGA vendor-independent VHDL description
 the NEO430 processor. Application program generation works by executing a single "make" command. Jump to the
 "Let’s Get It Started" chapter in the NEO430 documentary, which provides a lot of guides and tutorials to make your first
 NEO430 setup run: [![NEO430 Datasheet](https://raw.githubusercontent.com/stnolting/neo430/master/doc/figures/PDF_32.png) NEO430 Datasheet](https://raw.githubusercontent.com/stnolting/neo430/master/doc/NEO430.pdf "NEO430 Datasheet from GitHub")
-
-**Want to go further? Check out the big brother of the NEO430: The RISC-V powered 32-bit [NEORV32](https://github.com/stnolting/neorv32).**
 
 
 
@@ -429,10 +429,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 "AXI", "AXI4" and "AXI4-Lite" are trademarks of Arm Holdings plc.
 
-
-[![Continous Integration provided by Travis CI](https://travis-ci.com/images/logos/TravisCI-Full-Color.png)](https://travis-ci.com/stnolting/neo430)
-
-Continous integration provided by [Travis CI](https://travis-ci.com/stnolting/neo430) and powered by [GHDL](https://github.com/ghdl/ghdl).
 
 
 ![Open Source Hardware Logo https://www.oshwa.org](https://raw.githubusercontent.com/stnolting/neo430/master/doc/figures/oshw_logo.png)
