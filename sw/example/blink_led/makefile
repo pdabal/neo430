@@ -117,7 +117,7 @@ AS_OPTS = -mY -mcpu=msp430
 
 # Compiler flags
 CC_OPTS = -mcpu=msp430 -pipe -Wall -Xassembler --mY -fno-delete-null-pointer-checks
-CC_OPTS += -Wl,-static -mrelax -minrt -nostartfiles -fdata-sections -ffunction-sections -Xlinker --gc-sections
+CC_OPTS += -Wl,-static -mrelax -nostartfiles -fdata-sections -ffunction-sections -Xlinker --gc-sections
 # Use NEO430 multiplier? (still experimental!)
 ifeq (,$(findstring NEO430_HWMUL_ABI_OVERRIDE,$(CC_USER_FLAGS)))
 	CC_OPTS += -mhwmult=none
@@ -128,7 +128,7 @@ endif
 CC_OPTS += ${CC_USER_FLAGS}
 
 # Linker flags
-LD_OPTS = -mcpu=msp430 -mrelax -minrt -nostartfiles
+LD_OPTS = -mcpu=msp430 -mrelax -nostartfiles
 
 
 #-------------------------------------------------------------------------------
